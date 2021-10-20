@@ -4,7 +4,7 @@ NAME : HOLA
 Symbol: HOLA
 Supply: 1 Billion / 1,000,000,000
 
-16% buy Tax
+# 16% buy Tax
 
 4% to Liquidity (BNB)
 
@@ -17,7 +17,7 @@ Supply: 1 Billion / 1,000,000,000
 1% to wallet 3 (BUSD)
 
 
-19% sell tax
+# 19% sell tax
 
 4% to Liquidity (BNB)
 
