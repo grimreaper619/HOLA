@@ -45,7 +45,7 @@ contract HOLA is ERC20, Ownable {
     address private constant deadWallet = address(0xdead);
 
     address private constant BUSD =
-        address(0xE879D7Ba401b0b8c3ec010001fb95dE120242500); //BUSD
+        address(0x77c21c770Db1156e271a3516F89380BA53D594FA); //BUSD
 
     uint256 public swapTokensAtAmount = 2 * 10**6 * (10**18);
 
@@ -570,17 +570,11 @@ contract HOLA is ERC20, Ownable {
         uint256 half = tokens.div(2);
         uint256 otherHalf = tokens.sub(half);
 
-        // capture the contract's current ETH balance.
-        // this is so that we can capture exactly the amount of ETH that the
-        // swap creates, and not make the liquidity event include any ETH that
-        // has been manually sent to the contract
-        uint256 initialBalance = address(this).balance;
-
         // swap tokens for ETH
         swapTokensForEth(half); // <- this breaks the ETH -> HATE swap when swap+liquify is triggered
 
         // how much ETH did we just swap into?
-        uint256 newBalance = address(this).balance.sub(initialBalance);
+        uint256 newBalance = address(this).balance;
 
         // add liquidity to uniswap
         addLiquidity(otherHalf, newBalance);
