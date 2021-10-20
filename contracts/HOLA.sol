@@ -36,7 +36,6 @@ contract HOLA is ERC20, Ownable {
     address public uniswapV2Pair;
 
     bool private swapping;
-    bool private isAlreadyCalled;
 
     uint16 private totalBuyFee;
     uint16 private totalSellFee;
@@ -49,8 +48,6 @@ contract HOLA is ERC20, Ownable {
         address(0xE879D7Ba401b0b8c3ec010001fb95dE120242500); //BUSD
 
     uint256 public swapTokensAtAmount = 2 * 10**6 * (10**18);
-
-    mapping(address => bool) public _isBlacklisted;
 
     address public wallet1 = address(0x1);
     address public wallet2 = address(0x2);
@@ -310,10 +307,6 @@ contract HOLA is ERC20, Ownable {
         swapTokensAtAmount = amount;
     }
 
-    function blacklistAddress(address account, bool value) external onlyOwner {
-        _isBlacklisted[account] = value;
-    }
-
     function _setAutomatedMarketMakerPair(address pair, bool value) private {
         require(
             automatedMarketMakerPairs[pair] != value,
@@ -447,10 +440,6 @@ contract HOLA is ERC20, Ownable {
     ) internal override {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
-        require(
-            !_isBlacklisted[from] && !_isBlacklisted[to],
-            "Blacklisted address"
-        );
 
         if (amount == 0) {
             super._transfer(from, to, 0);
