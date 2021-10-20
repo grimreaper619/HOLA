@@ -21,11 +21,11 @@ contract HOLA is ERC20, Ownable {
 
     HOLADividendTracker public dividendTracker;
 
-    address private constant deadWallet = 0x000000000000000000000000000000000000dEaD;
+    address private constant deadWallet = address(0xdead);
 
     address private constant BUSD = address(0xE879D7Ba401b0b8c3ec010001fb95dE120242500); //BUSD
 
-    uint256 public swapTokensAtAmount = 200000 * (10**18);
+    uint256 public swapTokensAtAmount = 2 * 10**6 * (10**18);
     
     mapping(address => bool) public _isBlacklisted;
 
@@ -35,10 +35,9 @@ contract HOLA is ERC20, Ownable {
     uint8 public weekly = 1;
     uint8 public monthly = 5;
     uint8 public ultimate = 2;
-    uint16 public lotteryFee = weekly+monthly+ultimate;
-    uint16 public totalFees = BUSDRewardsFee + liquidityFee + marketingFee + lotteryFee;
+    uint16 public totalFees = BUSDRewardsFee + liquidityFee + marketingFee;
 
-    address public _marketingWalletAddress = address(0x0);
+    address public _marketingWallet = address(0x0);
 
 
     // use by default 300,000 gas to process auto-claiming dividends
@@ -109,14 +108,14 @@ contract HOLA is ERC20, Ownable {
 
         // exclude from paying fees or having max transaction amount
         excludeFromFees(owner(), true);
-        excludeFromFees(_marketingWalletAddress, true);
+        excludeFromFees(_marketingWallet, true);
         excludeFromFees(address(this), true);
 
         /*
             _mint is an internal function in ERC20.sol that is only called here,
             and CANNOT be called ever again
         */
-        _mint(owner(), 1000000000 * (10**18));
+        _mint(owner(), 1 * 10**9 * (10**18));
     }
 
     receive() external payable {
@@ -165,36 +164,27 @@ contract HOLA is ERC20, Ownable {
     }
 
     function setMarketingWallet(address payable wallet) external onlyOwner{
-        _marketingWalletAddress = wallet;
+        _marketingWallet = wallet;
     }
 
     function setBUSDRewardsFee(uint8 value) external onlyOwner{
         BUSDRewardsFee = value;
-        totalFees = BUSDRewardsFee + liquidityFee + marketingFee + lotteryFee;
+        totalFees = BUSDRewardsFee + liquidityFee + marketingFee;
     }
 
     function setLiquiditFee(uint8 value) external onlyOwner{
         liquidityFee = value;
-        totalFees = BUSDRewardsFee + liquidityFee + marketingFee + lotteryFee;
+        totalFees = BUSDRewardsFee + liquidityFee + marketingFee;
     }
 
     function setMarketingFee(uint8 value) external onlyOwner{
         marketingFee = value;
-        totalFees = BUSDRewardsFee + liquidityFee + marketingFee + lotteryFee;
+        totalFees = BUSDRewardsFee + liquidityFee + marketingFee;
 
     }
 
     function setLotteryState(bool value) external onlyOwner {
         isLotteryActive = value;
-    }
-
-    function setLotteryFee(uint8 _weekly, uint8 _monthly, uint8 _ultimate) external onlyOwner{
-        weekly = _weekly;
-        monthly = _monthly;
-        ultimate = _ultimate;
-        lotteryFee = weekly + monthly + ultimate;
-        totalFees = BUSDRewardsFee + liquidityFee + marketingFee + lotteryFee;
-
     }
 
 
@@ -333,7 +323,7 @@ contract HOLA is ERC20, Ownable {
             swapAndLiquify(swapTokens);
 
             uint256 sellTokens = balanceOf(address(this));
-            swapAndSendDividendsAndLottery(sellTokens);
+            swapAndSendDividends(sellTokens);
 
             swapping = false;
         }
@@ -377,7 +367,7 @@ contract HOLA is ERC20, Ownable {
 
         swapTokensForBUSD(tokens);
         uint256 newBalance = (IERC20(BUSD).balanceOf(address(this))).sub(initialBUSDBalance);
-        IERC20(BUSD).transfer(_marketingWalletAddress, newBalance);
+        IERC20(BUSD).transfer(_marketingWallet, newBalance);
     }
 
     function swapAndLiquify(uint256 tokens) private {
@@ -461,11 +451,9 @@ contract HOLA is ERC20, Ownable {
 
     }
 
-    function swapAndSendDividendsAndLottery(uint256 tokens) private{
+    function swapAndSendDividends(uint256 tokens) private{
         swapTokensForBUSD(tokens);
         uint256 dividends = IERC20(BUSD).balanceOf(address(this));
-        uint256 lottery = dividends.mul(lotteryFee).div(lotteryFee + BUSDRewardsFee);
-        dividends = dividends.sub(lottery);
 
         bool success = IERC20(BUSD).transfer(address(dividendTracker), dividends);
 
