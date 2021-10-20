@@ -111,7 +111,7 @@ contract HOLA is ERC20, Ownable {
         dividendTracker = new HOLADividendTracker();
 
         IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(
-            0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+            0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
         );
         // Create a uniswap pair for this new token
         address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
