@@ -52,7 +52,11 @@ contract HOLA is ERC20, Ownable {
 
     mapping(address => bool) public _isBlacklisted;
 
-    address public _marketingWallet = address(0x0);
+    address public wallet1 = address(0x1);
+    address public wallet2 = address(0x2);
+    address public wallet3 = address(0x3);
+    address public wallet4 = address(0x4);
+    address public wallet5 = address(0x5);
 
     // use by default 300,000 gas to process auto-claiming dividends
     uint256 public gasForProcessing = 300000;
@@ -124,7 +128,12 @@ contract HOLA is ERC20, Ownable {
         buyFee.wallet1 = 20;
         buyFee.wallet2 = 10;
         buyFee.wallet3 = 10;
-        totalBuyFee = buyFee.autoLp + buyFee.reward + buyFee.wallet1 + buyFee.wallet2 + buyFee.wallet3; 
+        totalBuyFee =
+            buyFee.autoLp +
+            buyFee.reward +
+            buyFee.wallet1 +
+            buyFee.wallet2 +
+            buyFee.wallet3;
 
         sellFee.autoLp = 40;
         sellFee.reward = 80;
@@ -133,7 +142,14 @@ contract HOLA is ERC20, Ownable {
         sellFee.wallet3 = 10;
         sellFee.wallet4 = 15;
         sellFee.wallet5 = 15;
-        totalSellFee = sellFee.autoLp + sellFee.reward + sellFee.wallet1 + sellFee.wallet2 + sellFee.wallet3 + sellFee.wallet4 + sellFee.wallet5; 
+        totalSellFee =
+            sellFee.autoLp +
+            sellFee.reward +
+            sellFee.wallet1 +
+            sellFee.wallet2 +
+            sellFee.wallet3 +
+            sellFee.wallet4 +
+            sellFee.wallet5;
 
         _setAutomatedMarketMakerPair(_uniswapV2Pair, true);
 
@@ -146,7 +162,7 @@ contract HOLA is ERC20, Ownable {
 
         // exclude from paying fees or having max transaction amount
         excludeFromFees(owner(), true);
-        excludeFromFees(_marketingWallet, true);
+        excludeFromFees(wallet1, true);
         excludeFromFees(address(this), true);
 
         /*
@@ -216,10 +232,67 @@ contract HOLA is ERC20, Ownable {
         emit ExcludeMultipleAccountsFromFees(accounts, excluded);
     }
 
-    function setMarketingWallet(address payable wallet) external onlyOwner {
-        _marketingWallet = wallet;
+    function setWallets(
+        address _w1,
+        address _w2,
+        address _w3,
+        address _w4,
+        address _w5
+    ) external onlyOwner {
+        wallet1 = _w1;
+        wallet2 = _w2;
+        wallet3 = _w3;
+        wallet4 = _w4;
+        wallet5 = _w5;
     }
 
+    function setBuyFees(
+        uint16 lp,
+        uint16 reward,
+        uint16 w1,
+        uint16 w2,
+        uint16 w3
+    ) external onlyOwner {
+        buyFee.autoLp = lp;
+        buyFee.reward = reward;
+        buyFee.wallet1 = w1;
+        buyFee.wallet2 = w2;
+        buyFee.wallet3 = w3;
+
+        totalBuyFee =
+            buyFee.autoLp +
+            buyFee.reward +
+            buyFee.wallet1 +
+            buyFee.wallet2 +
+            buyFee.wallet3;
+    }
+
+    function setSellFees(
+        uint16 lp,
+        uint16 reward,
+        uint16 w1,
+        uint16 w2,
+        uint16 w3,
+        uint16 w4,
+        uint16 w5
+    ) external onlyOwner {
+        sellFee.autoLp = lp;
+        sellFee.reward = reward;
+        sellFee.wallet1 = w1;
+        sellFee.wallet2 = w2;
+        sellFee.wallet3 = w3;
+        sellFee.wallet4 = w4;
+        sellFee.wallet5 = w5;
+
+        totalSellFee =
+            sellFee.autoLp +
+            sellFee.reward +
+            sellFee.wallet1 +
+            sellFee.wallet2 +
+            sellFee.wallet3 +
+            sellFee.wallet4 +
+            sellFee.wallet5;
+    }
 
     function setAutomatedMarketMakerPair(address pair, bool value)
         public
@@ -340,6 +413,7 @@ contract HOLA is ERC20, Ownable {
             uint256 claims,
             uint256 lastProcessedIndex
         ) = dividendTracker.process(gas);
+
         emit ProcessedDividendTracker(
             iterations,
             claims,
@@ -457,7 +531,7 @@ contract HOLA is ERC20, Ownable {
         uint256 newBalance = (IERC20(BUSD).balanceOf(address(this))).sub(
             initialBUSDBalance
         );
-        IERC20(BUSD).transfer(_marketingWallet, newBalance);
+        //IERC20(BUSD).transfer(_marketingWallet, newBalance);
     }
 
     function swapAndLiquify(uint256 tokens) private {
