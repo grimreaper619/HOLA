@@ -4,16 +4,17 @@ module.exports = {
  networks: {
   development: {
    host: '127.0.0.1', // Localhost (default: none)
-   port: 9545, // Standard Ethereum port (default: none)
+   port: 8545, // Standard Ethereum port (default: none)
    network_id: '*', // Any network (default: none)
+   gas: 12000000,
    from: process.env.OWNER,
   },
   ropsten: {
    provider: () =>
     new HDWalletProvider(process.env.MNEMONIC, process.env.ROPSTEN, 0),
    network_id: 3,
-   gas: 8000000,
-   gasPrice: 20000000000,
+   gas: 12000000,
+   gasPrice: 10000000000,
    timeoutBlocks: 5000000, // # of blocks before a deployment times out  (minimum/default: 50)
    skipDryRun: true, // Skip dry run before migrations? (default: false for public nets )
    // confirmations: 2,    // # of confs to wait between deployments. (default: 0)
@@ -24,19 +25,23 @@ module.exports = {
    provider: () =>
     new HDWalletProvider(process.env.MNEMONIC, process.env.RINKEBY),
    network_id: 4,
-   gas: 8000000,
-   gasPrice: 20000000000,
+   gas: 12000000,
+   gasPrice: 10000000000,
    skipDryRun: true, // Skip dry run before migrations? (default: false for public nets )
   },
-  testnet: {
+  bsctestnet: {
    provider: () =>
-    new HDWalletProvider(
-     process.env.MNEMONIC,
-     `https://data-seed-prebsc-1-s1.binance.org:8545`
-    ),
+    new HDWalletProvider(process.env.MNEMONIC, process.env.BSCTESTNET),
    network_id: 97,
+   gas: 12000000,
    skipDryRun: true,
   },
+  bscmainnet: {
+    provider: () =>
+     new HDWalletProvider(process.env.MNEMONIC, process.env.BSCMAINNET),
+    network_id: 56,
+    skipDryRun: true,
+    },
   mainnet: {
    provider: () =>
     new HDWalletProvider(process.env.MNEMONIC, process.env.MAINNET, 0),
@@ -65,7 +70,7 @@ module.exports = {
   },
  },
 
- plugins: ['truffle-plugin-verify', 'solidity-coverage'],
+ plugins: ['truffle-plugin-verify'],
  api_keys: {
   etherscan: process.env.ETHERAPI, // Add  API key
   bscscan: process.env.BSCSCAN,
