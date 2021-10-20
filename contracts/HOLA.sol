@@ -5,7 +5,6 @@ pragma solidity ^0.8.8;
 import "./misc/DividendPayingToken.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./math/IterableMapping.sol";
-import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 
