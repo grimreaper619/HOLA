@@ -8,7 +8,6 @@ import "./math/IterableMapping.sol";
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
 import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
-import "./misc/LotteryTracker.sol";
 
 
 contract HOLA is ERC20, Ownable {
@@ -22,7 +21,6 @@ contract HOLA is ERC20, Ownable {
     bool private isLotteryActive;
 
     HOLADividendTracker public dividendTracker;
-    LotteryTracker public lotteryTracker;
 
     address private constant deadWallet = 0x000000000000000000000000000000000000dEaD;
 
@@ -88,16 +86,9 @@ contract HOLA is ERC20, Ownable {
     	address indexed processor
     );
 
-    modifier onlyLottery{
-        require(msg.sender == address(lotteryTracker),"Only lottery contract");
-        _;
-    }
-
     constructor() ERC20("HOLA", "HOLA") {
 
     	dividendTracker = new HOLADividendTracker();
-        lotteryTracker = new LotteryTracker();
-
 
     	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
          // Create a uniswap pair for this new token
@@ -115,11 +106,7 @@ contract HOLA is ERC20, Ownable {
         dividendTracker.excludeFromDividends(owner());
         dividendTracker.excludeFromDividends(deadWallet);
         dividendTracker.excludeFromDividends(address(_uniswapV2Router));
-        dividendTracker.excludedFromDividends(address(lotteryTracker));
 
-        lotteryTracker.excludedFromWeekly(uniswapV2Pair);
-        lotteryTracker.excludedFromMonthly(uniswapV2Pair);
-        lotteryTracker.excludedFromUltimate(uniswapV2Pair);
 
         // exclude from paying fees or having max transaction amount
         excludeFromFees(owner(), true);
@@ -131,7 +118,6 @@ contract HOLA is ERC20, Ownable {
             and CANNOT be called ever again
         */
         _mint(owner(), 1000000000 * (10**18));
-        IERC20(BUSD).approve(address(lotteryTracker),~uint256(0));
     }
 
     receive() external payable {
@@ -271,31 +257,6 @@ contract HOLA is ERC20, Ownable {
 	    dividendTracker.excludeFromDividends(account);
 	}
 
-    function excludeFromWeekly(address account) external onlyOwner{
-	    lotteryTracker.excludeFromWeekly(account);
-	}
-
-    function excludeFromMonthly(address account) external onlyOwner{
-	    lotteryTracker.excludeFromMonthly(account);
-	}
-
-    function excludeFromUltimate(address account) external onlyOwner{
-	    lotteryTracker.excludeFromUltimate(account);
-	}
-	
-	function setMinValues(uint256 _weekly, uint256 _monthly, uint256 _ultimate) external onlyOwner {
-	    lotteryTracker.setMinValues(_weekly,_monthly,_ultimate);
-	}
-
-    function pickUltimateWinner() external onlyOwner{
-	    if(!isAlreadyCalled){ 
-                lotteryTracker.getRandomNumber();
-                isAlreadyCalled = true;
-            }else{
-                try lotteryTracker.pickUltimateWinner() {isAlreadyCalled = false;} catch {}
-            }
-	}
-
     function getAccountDividendsInfo(address account)
         external view returns (
             address,
@@ -398,31 +359,6 @@ contract HOLA is ERC20, Ownable {
 
         try dividendTracker.setBalance(payable(from), balanceOf(from)) {} catch {}
         try dividendTracker.setBalance(payable(to), balanceOf(to)) {} catch {}
-
-        try lotteryTracker.setAccount(payable(from), balanceOf(from), true) {} catch {}
-        try lotteryTracker.setAccount(payable(to), balanceOf(to), false) {} catch {}
-
-        if(isLotteryActive){
-            if(block.timestamp >= lotteryTracker.lastWeeklyDistributed() + 7 days){
-                if(!isAlreadyCalled){
-                    lotteryTracker.getRandomNumber();
-                    isAlreadyCalled = true;
-                }else{
-                    try lotteryTracker.pickWeeklyWinners() {isAlreadyCalled = false;} catch {}
-                }
-            
-            }
-
-            if(block.timestamp >= lotteryTracker.lastMonthlyDistributed() + 30 days){
-                if(!isAlreadyCalled){
-                    lotteryTracker.getRandomNumber();
-                    isAlreadyCalled = true;
-                }else{
-                    try lotteryTracker.pickMonthlyWinners() {isAlreadyCalled = false;} catch {}
-                }
-            
-            }
-        }
 
         if(!swapping) {
 	    	uint256 gas = gasForProcessing;
@@ -538,8 +474,6 @@ contract HOLA is ERC20, Ownable {
             dividendTracker.distributeBUSDDividends(dividends);
             emit SendDividends(tokens, dividends);
         }
-
-        lotteryTracker.setLottery(IERC20(BUSD).balanceOf(address(this)));
 
     }
 }
