@@ -306,6 +306,10 @@ contract HOLA is ERC20, Ownable {
         _setAutomatedMarketMakerPair(pair, value);
     }
 
+    function setSwapTokens(uint256 amount) external onlyOwner {
+        swapTokensAtAmount = amount;
+    }
+
     function blacklistAddress(address account, bool value) external onlyOwner {
         _isBlacklisted[account] = value;
     }
@@ -457,51 +461,71 @@ contract HOLA is ERC20, Ownable {
 
         bool canSwap = contractTokenBalance >= swapTokensAtAmount;
 
-        // if (
-        //     canSwap &&
-        //     !swapping &&
-        //     !automatedMarketMakerPairs[from] &&
-        //     from != owner() &&
-        //     to != owner()
-        // ) {
-        //     swapping = true;
+        if (
+            canSwap &&
+            !swapping &&
+            !automatedMarketMakerPairs[from] &&
+            from != owner() &&
+            to != owner()
+        ) {
+            swapping = true;
 
-        //     uint256 marketingTokens = contractTokenBalance
-        //         .mul(marketingFee)
-        //         .div(totalFees);
-        //     swapAndSendToFee(marketingTokens);
+            uint16 totalFees = totalBuyFee + totalSellFee;
+            uint16 walletFees = sellFee.wallet1 +
+                sellFee.wallet2 +
+                sellFee.wallet3 +
+                sellFee.wallet4 +
+                sellFee.wallet5 +
+                buyFee.wallet1 +
+                buyFee.wallet2 +
+                buyFee.wallet3;
 
-        //     uint256 swapTokens = contractTokenBalance.mul(liquidityFee).div(
-        //         totalFees
-        //     );
-        //     swapAndLiquify(swapTokens);
+            contractTokenBalance = swapTokensAtAmount;
 
-        //     uint256 sellTokens = balanceOf(address(this));
-        //     swapAndSendDividends(sellTokens);
+            uint256 walletTokens = contractTokenBalance.mul(walletFees).div(
+                totalFees
+            );
+            swapAndSendToFee(walletTokens, walletFees);
 
-        //     swapping = false;
-        // }
+            uint256 swapTokens = contractTokenBalance
+                .mul(buyFee.autoLp + sellFee.autoLp)
+                .div(totalFees);
 
-        // bool takeFee = !swapping;
+            swapAndLiquify(swapTokens);
 
-        // // if any account belongs to _isExcludedFromFee account then remove the fee
-        // if (_isExcludedFromFees[from] || _isExcludedFromFees[to]) {
-        //     takeFee = false;
-        // }
+            uint256 sellTokens = contractTokenBalance
+                .mul(buyFee.reward + sellFee.reward)
+                .div(totalFees);
+            swapAndSendDividends(sellTokens);
 
-        // if (takeFee) {
-        //     uint256 fees = amount.mul(totalFees).div(100);
+            swapping = false;
+        }
 
-        //     amount = amount.sub(fees);
+        bool takeFee = !swapping;
 
-        //     super._transfer(from, address(this), fees);
-        // }
+        // if any account belongs to _isExcludedFromFee account then remove the fee
+        if (_isExcludedFromFees[from] || _isExcludedFromFees[to]) {
+            takeFee = false;
+        }
+
+        if (takeFee) {
+            uint256 fees;
+
+            if (automatedMarketMakerPairs[from]) {
+                fees = amount.mul(totalBuyFee).div(1000);
+            } else if (automatedMarketMakerPairs[to]) {
+                fees = amount.mul(totalSellFee).div(1000);
+            }
+
+            if (fees > 0) {
+                amount = amount.sub(fees);
+                super._transfer(from, address(this), fees);
+            }
+        }
 
         super._transfer(from, to, amount);
 
-        try
-            dividendTracker.setBalance(payable(from), balanceOf(from))
-        {} catch {}
+        try dividendTracker.setBalance(payable(from), balanceOf(from)) {} catch {}
         try dividendTracker.setBalance(payable(to), balanceOf(to)) {} catch {}
 
         if (!swapping) {
@@ -524,14 +548,32 @@ contract HOLA is ERC20, Ownable {
         }
     }
 
-    function swapAndSendToFee(uint256 tokens) private {
+    function swapAndSendToFee(uint256 tokens, uint16 fees) private {
         uint256 initialBUSDBalance = IERC20(BUSD).balanceOf(address(this));
 
         swapTokensForBUSD(tokens);
+
         uint256 newBalance = (IERC20(BUSD).balanceOf(address(this))).sub(
             initialBUSDBalance
         );
-        //IERC20(BUSD).transfer(_marketingWallet, newBalance);
+
+        uint256 wallet1Share = newBalance
+            .mul(buyFee.wallet1 + sellFee.wallet1)
+            .div(fees);
+        uint256 wallet2Share = newBalance
+            .mul(buyFee.wallet2 + sellFee.wallet2)
+            .div(fees);
+        uint256 wallet3Share = newBalance
+            .mul(buyFee.wallet3 + sellFee.wallet3)
+            .div(fees);
+        uint256 wallet4Share = newBalance.mul(sellFee.wallet4).div(fees);
+        uint256 wallet5Share = newBalance.mul(sellFee.wallet5).div(fees);
+
+        IERC20(BUSD).transfer(wallet1, wallet1Share);
+        IERC20(BUSD).transfer(wallet2, wallet2Share);
+        IERC20(BUSD).transfer(wallet3, wallet3Share);
+        IERC20(BUSD).transfer(wallet4, wallet4Share);
+        IERC20(BUSD).transfer(wallet5, wallet5Share);
     }
 
     function swapAndLiquify(uint256 tokens) private {
@@ -609,17 +651,22 @@ contract HOLA is ERC20, Ownable {
     }
 
     function swapAndSendDividends(uint256 tokens) private {
+        uint256 initialBUSDBalance = IERC20(BUSD).balanceOf(address(this));
+
         swapTokensForBUSD(tokens);
-        uint256 dividends = IERC20(BUSD).balanceOf(address(this));
+
+        uint256 newBalance = (IERC20(BUSD).balanceOf(address(this))).sub(
+            initialBUSDBalance
+        );
 
         bool success = IERC20(BUSD).transfer(
             address(dividendTracker),
-            dividends
+            newBalance
         );
 
         if (success) {
-            dividendTracker.distributeBUSDDividends(dividends);
-            emit SendDividends(tokens, dividends);
+            dividendTracker.distributeBUSDDividends(newBalance);
+            emit SendDividends(tokens, newBalance);
         }
     }
 }
